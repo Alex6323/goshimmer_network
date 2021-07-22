@@ -1,9 +1,11 @@
 // use crypto::signatures::ed25519::PublicKey;
 
-use std::collections::HashSet;
-use std::hash::Hash;
-use std::net::{IpAddr, SocketAddr};
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashSet,
+    hash::Hash,
+    net::{IpAddr, SocketAddr},
+    sync::{Arc, RwLock},
+};
 
 pub enum Direction {
     Inbound,

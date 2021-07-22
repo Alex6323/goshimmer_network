@@ -6,6 +6,7 @@ mod error;
 mod event;
 mod handshake;
 mod identity;
+mod message;
 mod network;
 mod packet;
 mod peer;

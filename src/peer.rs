@@ -1,8 +1,9 @@
-use crate::packet::Packet;
-use crate::{identity::Identity, MAX_PACKET_SIZE};
+use crate::{identity::Identity, message::Message, MAX_PACKET_SIZE};
 
-use std::io::{self, BufReader, BufWriter, Read, Write};
-use std::net::TcpStream;
+use std::{
+    io::{self, BufReader, BufWriter, Read, Write},
+    net::TcpStream,
+};
 
 pub struct ConnectedPeer {
     identity: Identity,
@@ -79,9 +80,9 @@ impl ConnectedPeer {
 
                 Err(PeerError::NotHealthy)
             } else {
-                // let packet = Packet::from_protobuf(&self.buffer[..n]).map_err(|e| PeerError::Decode(e))?;
-                // println!("{:#?}", packet);
-                println!("Received {} bytes.", n);
+                let msg = Message::from_protobuf(&self.buffer[..n]).map_err(|e| PeerError::Decode(e))?;
+                println!("{:#?}", msg);
+                // println!("Received {} bytes.", n);
 
                 // Ok(packet.unwrap())
                 Ok(vec![])

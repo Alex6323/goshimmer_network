@@ -27,6 +27,10 @@ impl Packet {
         })
     }
 
+    pub fn from_protobuf(bytes: &[u8]) -> Result<Self, DecodeError> {
+        Ok(Self(proto::Packet::decode(bytes)?))
+    }
+
     pub fn ty(&self) -> Result<PacketType, io::Error> {
         num::FromPrimitive::from_u32(self.0.r#type).ok_or(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -44,10 +48,6 @@ impl Packet {
 
     pub fn signature(&self) -> &Vec<u8> {
         &self.0.signature
-    }
-
-    pub fn from_protobuf(bytes: &[u8]) -> Result<Self, DecodeError> {
-        Ok(Self(proto::Packet::decode(bytes)?))
     }
 
     pub fn protobuf(&self) -> Result<BytesMut, EncodeError> {
