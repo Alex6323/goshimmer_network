@@ -1,6 +1,7 @@
 use crate::{
     identity::Identity,
     message::{Message, MessageRequest},
+    packet::PacketType,
     MAX_PACKET_SIZE,
 };
 
@@ -25,6 +26,8 @@ pub enum PeerError {
     RecvMessage(io::Error),
     Decode(prost::DecodeError),
     Encode(prost::EncodeError),
+    PacketType(io::Error),
+    UnknownPacket,
 }
 
 impl ConnectedPeer {
@@ -71,7 +74,7 @@ impl ConnectedPeer {
         }
     }
 
-    pub fn recv_msg(&mut self) -> Result<Vec<u8>, PeerError> {
+    pub fn recv_msg(&mut self) -> Result<(PacketType, Vec<u8>), PeerError> {
         if self.healthy {
             let n = self
                 .reader
@@ -84,12 +87,38 @@ impl ConnectedPeer {
 
                 Err(PeerError::NotHealthy)
             } else {
-                let msg_req = MessageRequest::from_protobuf(&self.buffer[..n]).map_err(|e| PeerError::Decode(e))?;
-                println!("{:#?}", msg_req);
-                // println!("Received {} bytes.", n);
+                println!("Received {} bytes.", n);
 
-                // Ok(packet.unwrap())
-                Ok(vec![])
+                let packet_type: PacketType =
+                    num::FromPrimitive::from_u8(self.buffer[0]).ok_or(PeerError::PacketType(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "unknown packet type identifier",
+                    )))?;
+
+                match packet_type {
+                    PacketType::Message => {
+                        let msg = Message::from_protobuf(&self.buffer[1..n]).map_err(|e| PeerError::Decode(e))?;
+                        println!("{:#?}", msg);
+
+                        let data = msg.unwrap();
+
+                        Ok((PacketType::Message, data))
+                    }
+                    PacketType::MessageRequest => {
+                        let msg_req =
+                            MessageRequest::from_protobuf(&self.buffer[1..n]).map_err(|e| PeerError::Decode(e))?;
+                        println!("{:#?}", msg_req);
+
+                        let id = msg_req.unwrap();
+
+                        Ok((PacketType::MessageRequest, id))
+                    }
+                    _ => {
+                        println!("Received unknown packet");
+
+                        Err(PeerError::UnknownPacket)
+                    }
+                }
             }
         } else {
             Err(PeerError::NotHealthy)

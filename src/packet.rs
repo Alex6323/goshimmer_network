@@ -1,3 +1,4 @@
+use crate::consts::IOTA;
 use crate::proto;
 
 use base64 as bs64;
@@ -9,10 +10,6 @@ use std::{fmt, io};
 
 pub fn packet_hash(packet_bytes: &[u8]) -> Vec<u8> {
     digest::digest(&digest::SHA256, packet_bytes).as_ref().to_vec()
-}
-
-pub fn prepare_packet() {
-    todo!()
 }
 
 pub struct Packet(proto::Packet);
@@ -76,9 +73,11 @@ impl fmt::Debug for Packet {
     }
 }
 
-#[repr(u32)]
-#[derive(FromPrimitive)]
+#[derive(Debug, FromPrimitive)]
+#[repr(u8)]
 #[non_exhaustive]
 pub enum PacketType {
     Handshake = 0,
+    Message = 20 + IOTA,
+    MessageRequest,
 }

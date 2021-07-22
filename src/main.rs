@@ -46,7 +46,7 @@ fn spawn_connection_handler(mut peer: ConnectedPeer) {
 
         loop {
             match (&mut peer).recv_msg() {
-                Ok(data) => {
+                Ok((_ty, data)) => {
                     if data.len() == 0 {
                         println!("Peer sent empty message.");
                         continue;
