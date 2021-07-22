@@ -55,6 +55,7 @@ fn spawn_connection_handler(mut peer: ConnectedPeer) {
                 }
                 Err(e) => {
                     println!("Receive error: {:?}", e);
+                    break;
                 }
             }
         }

@@ -18,7 +18,7 @@ pub struct ConnectedPeer {
     reader: BufReader<TcpStream>,
     writer: BufWriter<TcpStream>,
     healthy: bool,
-    buffer: [u8; MAX_PACKET_SIZE],
+    // buffer: [u8; MAX_PACKET_SIZE],
 }
 
 #[derive(Debug)]
@@ -40,7 +40,7 @@ impl ConnectedPeer {
             reader,
             writer,
             healthy: true,
-            buffer: [0u8; MAX_PACKET_SIZE],
+            // buffer: [0u8; MAX_PACKET_SIZE],
         }
     }
 
@@ -78,10 +78,8 @@ impl ConnectedPeer {
 
     pub fn recv_msg(&mut self) -> Result<(PacketType, Vec<u8>), PeerError> {
         if self.healthy {
-            let n = self
-                .reader
-                .read(&mut self.buffer)
-                .map_err(|e| PeerError::RecvMessage(e))?;
+            let mut buffer = [0u8; MAX_PACKET_SIZE];
+            let n = self.reader.read(&mut buffer).map_err(|e| PeerError::RecvMessage(e))?;
 
             if n == 0 {
                 println!("Connection reset by peer.");
@@ -103,7 +101,8 @@ impl ConnectedPeer {
                 //     self.buffer[7]
                 // );
 
-                let pt = Buf::get_u32(&mut &self.buffer[0..4]);
+                let pt = buffer[0];
+                // let pt = Buf::get_u32(&mut &buffer[0..4]);
                 // let pt = (&self.buffer[0..8]).get_u64();
 
                 println!("Packet type identifier: {}.", pt);
@@ -113,7 +112,7 @@ impl ConnectedPeer {
                 // ))?;
 
                 for j in 0..n {
-                    if let Ok(msg) = Message::from_protobuf(&self.buffer[j..n]) {
+                    if let Ok(msg) = Message::from_protobuf(&buffer[j..n]) {
                         println!("Decode success at index {}", j);
 
                         println!("{:#?}", msg);
