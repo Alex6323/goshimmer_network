@@ -91,56 +91,59 @@ impl ConnectedPeer {
             } else {
                 // println!("Received {} bytes.", n);
 
-                println!(
-                    "{} {} {} {} {} {} {} {}",
-                    self.buffer[0],
-                    self.buffer[1],
-                    self.buffer[2],
-                    self.buffer[3],
-                    self.buffer[4],
-                    self.buffer[5],
-                    self.buffer[6],
-                    self.buffer[7]
-                );
+                // println!(
+                //     "{} {} {} {} {} {} {} {}",
+                //     self.buffer[0],
+                //     self.buffer[1],
+                //     self.buffer[2],
+                //     self.buffer[3],
+                //     self.buffer[4],
+                //     self.buffer[5],
+                //     self.buffer[6],
+                //     self.buffer[7]
+                // );
 
                 // let pt = Buf::get_u32(&mut self.buffer[0..4]);
-                let pt = (&self.buffer[0..8]).get_u64();
+                // let pt = (&self.buffer[0..8]).get_u64();
 
-                println!("Packet type identifier: {}.", pt);
+                // println!("Packet type identifier: {}.", pt);
 
-                let packet_type: PacketType = num::FromPrimitive::from_u64(pt).ok_or(PeerError::PacketType(
-                    io::Error::new(io::ErrorKind::InvalidData, "unknown packet type identifier"),
-                ))?;
+                // let packet_type: PacketType = num::FromPrimitive::from_u64(pt).ok_or(PeerError::PacketType(
+                //     io::Error::new(io::ErrorKind::InvalidData, "unknown packet type identifier"),
+                // ))?;
 
-                // match packet_type {
-                //     PacketType::Message => {
-                //         println!("PacketType::Message");
+                let packet_type = self.buffer[0];
 
-                //         let msg = Message::from_protobuf(&self.buffer[4..n]).map_err(|e| PeerError::Decode(e))?;
-                //         println!("{:#?}", msg);
+                match packet_type {
+                    // PacketType::Message => {
+                    0 => {
+                        println!("PacketType::Message");
 
-                //         let data = msg.unwrap();
+                        let msg = Message::from_protobuf(&self.buffer[1..n]).map_err(|e| PeerError::Decode(e))?;
+                        println!("{:#?}", msg);
 
-                //         Ok((PacketType::Message, data))
-                //     }
-                //     PacketType::MessageRequest => {
-                //         println!("PacketType::MessageRequest");
+                        let data = msg.unwrap();
 
-                //         let msg_req =
-                //             MessageRequest::from_protobuf(&self.buffer[4..n]).map_err(|e| PeerError::Decode(e))?;
-                //         println!("{:#?}", msg_req);
+                        Ok((PacketType::Message, data))
+                    }
+                    // PacketType::MessageRequest => {
+                    1 => {
+                        println!("PacketType::MessageRequest");
 
-                //         let id = msg_req.unwrap();
+                        let msg_req =
+                            MessageRequest::from_protobuf(&self.buffer[1..n]).map_err(|e| PeerError::Decode(e))?;
+                        println!("{:#?}", msg_req);
 
-                //         Ok((PacketType::MessageRequest, id))
-                //     }
-                //     _ => {
-                //         println!("Received unknown packet");
+                        let id = msg_req.unwrap();
 
-                //         Err(PeerError::UnknownPacket)
-                //     }
-                // }
-                Err(PeerError::UnknownPacket)
+                        Ok((PacketType::MessageRequest, id))
+                    }
+                    _ => {
+                        println!("Received unknown packet");
+
+                        Err(PeerError::UnknownPacket)
+                    }
+                }
             }
         } else {
             Err(PeerError::NotHealthy)
