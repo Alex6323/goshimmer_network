@@ -10,6 +10,8 @@ use std::{
     net::TcpStream,
 };
 
+use prost::bytes::Buf;
+
 pub struct ConnectedPeer {
     identity: Identity,
     alias: String,
@@ -89,38 +91,41 @@ impl ConnectedPeer {
             } else {
                 // println!("Received {} bytes.", n);
                 println!("Packet type byte: {}.", self.buffer[0]);
+                // let pt = Buf::get_u32(&mut self.buffer[0..4]);
+                let pt = (&self.buffer[0..4]).get_u32();
 
-                // let packet_type: PacketType =
-                //     num::FromPrimitive::from_u8(self.buffer[0]).ok_or(PeerError::PacketType(io::Error::new(
-                //         io::ErrorKind::InvalidData,
-                //         "unknown packet type identifier",
-                //     )))?;
+                let packet_type: PacketType = num::FromPrimitive::from_u32(pt).ok_or(PeerError::PacketType(
+                    io::Error::new(io::ErrorKind::InvalidData, "unknown packet type identifier"),
+                ))?;
 
-                // match packet_type {
-                //     PacketType::Message => {
-                //         let msg = Message::from_protobuf(&self.buffer[1..n]).map_err(|e| PeerError::Decode(e))?;
-                //         println!("{:#?}", msg);
+                match packet_type {
+                    PacketType::Message => {
+                        println!("PacketType::Message");
 
-                //         let data = msg.unwrap();
+                        let msg = Message::from_protobuf(&self.buffer[4..n]).map_err(|e| PeerError::Decode(e))?;
+                        println!("{:#?}", msg);
 
-                //         Ok((PacketType::Message, data))
-                //     }
-                //     PacketType::MessageRequest => {
-                //         let msg_req =
-                //             MessageRequest::from_protobuf(&self.buffer[1..n]).map_err(|e| PeerError::Decode(e))?;
-                //         println!("{:#?}", msg_req);
+                        let data = msg.unwrap();
 
-                //         let id = msg_req.unwrap();
+                        Ok((PacketType::Message, data))
+                    }
+                    PacketType::MessageRequest => {
+                        println!("PacketType::MessageRequest");
 
-                //         Ok((PacketType::MessageRequest, id))
-                //     }
-                //     _ => {
-                //         println!("Received unknown packet");
+                        let msg_req =
+                            MessageRequest::from_protobuf(&self.buffer[4..n]).map_err(|e| PeerError::Decode(e))?;
+                        println!("{:#?}", msg_req);
 
-                //         Err(PeerError::UnknownPacket)
-                //     }
-                // }
-                Err(PeerError::UnknownPacket)
+                        let id = msg_req.unwrap();
+
+                        Ok((PacketType::MessageRequest, id))
+                    }
+                    _ => {
+                        println!("Received unknown packet");
+
+                        Err(PeerError::UnknownPacket)
+                    }
+                }
             }
         } else {
             Err(PeerError::NotHealthy)

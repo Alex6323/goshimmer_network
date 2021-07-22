@@ -78,6 +78,6 @@ impl fmt::Debug for Packet {
 #[non_exhaustive]
 pub enum PacketType {
     Handshake = 0,
-    // Message = 20 + IOTA,
-    // MessageRequest,
+    Message = 20 + IOTA,
+    MessageRequest,
 }
