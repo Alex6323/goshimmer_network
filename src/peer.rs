@@ -13,6 +13,7 @@ pub struct ConnectedPeer {
     buffer: [u8; MAX_PACKET_SIZE],
 }
 
+#[derive(Debug)]
 pub enum PeerError {
     NotHealthy,
     SendMessage(io::Error),

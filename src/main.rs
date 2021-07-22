@@ -44,12 +44,19 @@ fn spawn_connection_handler(mut peer: ConnectedPeer) {
     thread::spawn(move || {
         println!("Listening for gossip from {}.", peer.id());
 
-        while let Ok(data) = (&mut peer).recv_msg() {
-            if data.len() == 0 {
-                println!("Peer sent empty message.");
-                continue;
+        loop {
+            match (&mut peer).recv_msg() {
+                Ok(data) => {
+                    if data.len() == 0 {
+                        println!("Peer sent empty message.");
+                        continue;
+                    }
+                    println!("Received {} bytes in data from {}.", data.len(), peer.id());
+                }
+                Err(e) => {
+                    println!("Receive error: {:?}", e);
+                }
             }
-            println!("Received {} bytes in data from {}.", data.len(), peer.id());
         }
     });
 }
