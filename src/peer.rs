@@ -90,11 +90,13 @@ impl ConnectedPeer {
                 Err(PeerError::NotHealthy)
             } else {
                 // println!("Received {} bytes.", n);
-                println!("Packet type byte: {}.", self.buffer[0]);
-                // let pt = Buf::get_u32(&mut self.buffer[0..4]);
-                let pt = (&self.buffer[0..4]).get_u32();
 
-                let packet_type: PacketType = num::FromPrimitive::from_u32(pt).ok_or(PeerError::PacketType(
+                // let pt = Buf::get_u32(&mut self.buffer[0..4]);
+                let pt = (&self.buffer[0..8]).get_u64();
+
+                println!("Packet type identifier: {}.", pt);
+
+                let packet_type: PacketType = num::FromPrimitive::from_u64(pt).ok_or(PeerError::PacketType(
                     io::Error::new(io::ErrorKind::InvalidData, "unknown packet type identifier"),
                 ))?;
 

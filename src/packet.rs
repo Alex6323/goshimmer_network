@@ -74,7 +74,7 @@ impl fmt::Debug for Packet {
 }
 
 #[derive(Debug, FromPrimitive)]
-#[repr(u32)]
+#[repr(u64)]
 #[non_exhaustive]
 pub enum PacketType {
     Handshake = 0,
