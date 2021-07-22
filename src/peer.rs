@@ -79,10 +79,12 @@ impl ConnectedPeer {
 
                 Err(PeerError::NotHealthy)
             } else {
-                let packet = Packet::from_protobuf(&self.buffer[..n]).map_err(|e| PeerError::Decode(e))?;
-                println!("{:#?}", packet);
+                // let packet = Packet::from_protobuf(&self.buffer[..n]).map_err(|e| PeerError::Decode(e))?;
+                // println!("{:#?}", packet);
+                println!("Received {} bytes.", n);
 
-                Ok(packet.unwrap())
+                // Ok(packet.unwrap())
+                Ok(vec![])
             }
         } else {
             Err(PeerError::NotHealthy)
