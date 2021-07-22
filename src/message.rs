@@ -42,3 +42,41 @@ impl fmt::Debug for Message {
             .finish()
     }
 }
+
+pub struct MessageRequest(proto::MessageRequest);
+
+impl MessageRequest {
+    pub fn new(id: &[u8]) -> Self {
+        Self(proto::MessageRequest { id: id.to_vec() })
+    }
+
+    pub fn from_protobuf(bytes: &[u8]) -> Result<Self, DecodeError> {
+        Ok(Self(proto::MessageRequest::decode(bytes)?))
+    }
+
+    pub fn data(&self) -> &Vec<u8> {
+        &self.0.id
+    }
+
+    pub fn protobuf(&self) -> Result<BytesMut, EncodeError> {
+        let len = self.0.encoded_len();
+
+        let mut buf = BytesMut::with_capacity(len);
+
+        self.0.encode(&mut buf)?;
+
+        Ok(buf)
+    }
+
+    pub fn unwrap(self) -> Vec<u8> {
+        self.0.id
+    }
+}
+
+impl fmt::Debug for MessageRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MessageRequest")
+            .field("id", &bs64::encode(&self.0.id))
+            .finish()
+    }
+}

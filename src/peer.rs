@@ -1,4 +1,8 @@
-use crate::{identity::Identity, message::Message, MAX_PACKET_SIZE};
+use crate::{
+    identity::Identity,
+    message::{Message, MessageRequest},
+    MAX_PACKET_SIZE,
+};
 
 use std::{
     io::{self, BufReader, BufWriter, Read, Write},
@@ -80,8 +84,8 @@ impl ConnectedPeer {
 
                 Err(PeerError::NotHealthy)
             } else {
-                let msg = Message::from_protobuf(&self.buffer[..n]).map_err(|e| PeerError::Decode(e))?;
-                println!("{:#?}", msg);
+                let msg_req = MessageRequest::from_protobuf(&self.buffer[..n]).map_err(|e| PeerError::Decode(e))?;
+                println!("{:#?}", msg_req);
                 // println!("Received {} bytes.", n);
 
                 // Ok(packet.unwrap())
