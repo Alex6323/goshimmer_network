@@ -87,7 +87,8 @@ impl ConnectedPeer {
 
                 Err(PeerError::NotHealthy)
             } else {
-                // println!("Received {} bytes.", n);
+                println!("---");
+                println!("Received {} bytes.", n);
 
                 // println!(
                 //     "{} {} {} {} {} {} {} {}",
