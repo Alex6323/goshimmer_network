@@ -103,18 +103,24 @@ impl ConnectedPeer {
                 //     self.buffer[7]
                 // );
 
-                // let pt = Buf::get_u32(&mut self.buffer[0..4]);
+                let pt = Buf::get_u32(&mut &self.buffer[0..4]);
                 // let pt = (&self.buffer[0..8]).get_u64();
 
-                // println!("Packet type identifier: {}.", pt);
+                println!("Packet type identifier: {}.", pt);
 
                 // let packet_type: PacketType = num::FromPrimitive::from_u64(pt).ok_or(PeerError::PacketType(
                 //     io::Error::new(io::ErrorKind::InvalidData, "unknown packet type identifier"),
                 // ))?;
 
                 for j in 0..n {
-                    if Message::from_protobuf(&self.buffer[j..n]).is_ok() {
+                    if let Ok(msg) = Message::from_protobuf(&self.buffer[j..n]) {
                         println!("Decode success at index {}", j);
+
+                        println!("{:#?}", msg);
+
+                        let data = msg.unwrap();
+
+                        return Ok((PacketType::Message, data));
                     }
                 }
 
