@@ -74,10 +74,10 @@ impl fmt::Debug for Packet {
 }
 
 #[derive(Debug, FromPrimitive)]
-#[repr(u8)]
+#[repr(u32)]
 #[non_exhaustive]
 pub enum PacketType {
     Handshake = 0,
-    Message = 20 + IOTA,
-    MessageRequest,
+    // Message = 20 + IOTA,
+    // MessageRequest,
 }
