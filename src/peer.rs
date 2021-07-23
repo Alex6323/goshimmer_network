@@ -1,7 +1,7 @@
 use crate::{
     identity::Identity,
-    message::{Message, MessageRequest},
-    packet::PacketType,
+    message::{Message, MessageRequest, MessageType},
+    packet::{Packet, PacketType},
     MAX_PACKET_SIZE,
 };
 
@@ -76,7 +76,7 @@ impl ConnectedPeer {
         }
     }
 
-    pub fn recv_msg(&mut self) -> Result<(PacketType, Vec<u8>), PeerError> {
+    pub fn recv_msg(&mut self) -> Result<(MessageType, Vec<u8>), PeerError> {
         if self.healthy {
             let mut buffer = [0u8; MAX_PACKET_SIZE];
             let n = self.reader.read(&mut buffer).map_err(|e| PeerError::RecvMessage(e))?;
@@ -90,12 +90,19 @@ impl ConnectedPeer {
                 println!("Received {} bytes.", n);
 
                 println!("{} {} {} {} {}", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],);
+                let pkt_type = Buf::get_u32(&mut &buffer[0..4]);
+                println!("Packet type identifier: {}.", pkt_type);
 
-                let pt = buffer[4];
-                // let pt = Buf::get_u32(&mut &buffer[0..4]);
+                if let Ok(pkt) = Packet::from_protobuf(&buffer[..n]) {
+                    println!("Decoding packet successful. Type = {:?}", pkt.ty());
+                } else {
+                    println!("Decoding packet failed.");
+                }
+
+                let msg_type = buffer[4];
                 // let pt = (&self.buffer[0..8]).get_u64();
 
-                println!("Packet type identifier: {}.", pt);
+                println!("Message type identifier: {}.", msg_type);
 
                 // let packet_type: PacketType = num::FromPrimitive::from_u64(pt).ok_or(PeerError::PacketType(
                 //     io::Error::new(io::ErrorKind::InvalidData, "unknown packet type identifier"),
@@ -109,7 +116,7 @@ impl ConnectedPeer {
 
                         let data = msg.unwrap();
 
-                        return Ok((PacketType::Message, data));
+                        return Ok((MessageType::Message, data));
                     }
                 }
 

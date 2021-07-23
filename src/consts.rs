@@ -10,4 +10,4 @@ pub const HANDSHAKE_WIRE_TIMEOUT_MILLIS: u64 = 500;
 // IOTA is a predeclared identifier representing the untyped integer ordinal
 // number of the current const specification in a (usually parenthesized)
 // const declaration. It is zero-indexed.
-pub const IOTA: u64 = 0;
+pub const IOTA: u8 = 0;

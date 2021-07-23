@@ -1,11 +1,20 @@
-use crate::proto;
+use crate::{consts::IOTA, proto};
 
 use base64 as bs64;
+use num_derive::FromPrimitive;
 use prost::{bytes::BytesMut, DecodeError, EncodeError, Message as _};
 
 use std::fmt;
 
 pub struct Message(proto::Message);
+
+#[derive(Debug, FromPrimitive)]
+#[repr(u8)]
+#[non_exhaustive]
+pub enum MessageType {
+    Message = 20 + IOTA,
+    MessageRequest,
+}
 
 impl Message {
     pub fn new(data: &[u8]) -> Self {
