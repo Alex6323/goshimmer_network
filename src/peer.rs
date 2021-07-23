@@ -99,7 +99,9 @@ impl ConnectedPeer {
             } else {
                 println!("Received {} bytes.", n);
 
-                let msg_len = Buf::get_u32(&mut &self.buffer[0..=3]);
+                let mut msg_len_buf = [0u8; 4];
+                msg_len_buf.copy_from_slice(&self.buffer[0..=3]);
+                let msg_len = Buf::get_u32(&mut &msg_len_buf[..]);
                 println!("Message length (incl. type specifier byte): {}.", msg_len);
 
                 let msg_type: MessageType =
