@@ -101,8 +101,8 @@ impl ConnectedPeer {
 
                 let mut msg_len_buf = [0u8; 4];
                 msg_len_buf.copy_from_slice(&self.buffer[0..=3]);
-                let msg_len = Buf::get_u32(&mut &msg_len_buf[..]) as usize;
-                println!("Message length (incl. type specifier byte): {}.", msg_len);
+                let msg_len = Buf::get_u32(&mut &msg_len_buf[..]) as usize - 1;
+                println!("Message length (excl. type specifier byte): {}.", msg_len);
 
                 let msg_type: MessageType =
                     num::FromPrimitive::from_u8(self.buffer[4]).ok_or(PeerError::UnknownMessageType)?;
