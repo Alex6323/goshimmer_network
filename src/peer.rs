@@ -78,7 +78,7 @@ impl ConnectedPeer {
         }
     }
 
-    pub fn recv_msg(&mut self) -> Result<(MessageType, Vec<u8>), PeerError> {
+    pub fn recv_msgs(&mut self) -> Result<Vec<(MessageType, Vec<u8>)>, PeerError> {
         if self.healthy {
             // NOTE:
             // - every message is prepended by its length: see iotaledger/hive.go/netutil/buffconn/buffconn.go
@@ -86,48 +86,60 @@ impl ConnectedPeer {
             // - Byte 4     encodes the message type (Message or MessageRequest)
             // - Bytes 5..n encode the protobuf representation of the actual message
 
-            let n = self
+            let num_received = self
                 .reader
                 .read(&mut self.buffer)
                 .map_err(|e| PeerError::RecvMessage(e))?;
 
-            if n == 0 {
+            if num_received == 0 {
                 println!("Connection reset by peer.");
                 self.healthy = false;
 
                 Err(PeerError::NotHealthy)
             } else {
-                println!("Received {} bytes.", n);
+                println!("Received {} bytes.", num_received);
 
-                let mut msg_len_buf = [0u8; 4];
-                msg_len_buf.copy_from_slice(&self.buffer[0..=3]);
-                let msg_len = Buf::get_u32(&mut &msg_len_buf[..]) as usize - 1;
-                println!("Message length (excl. type specifier byte): {}.", msg_len);
+                let mut position = 0;
+                let mut messages = Vec::with_capacity(16);
 
-                let msg_type: MessageType =
-                    num::FromPrimitive::from_u8(self.buffer[4]).ok_or(PeerError::UnknownMessageType)?;
-                println!("Message type: {:?}.", msg_type);
+                while position < num_received {
+                    // Determine the length of the next message within this batch
+                    let mut msg_len_buf = [0u8; 4];
+                    msg_len_buf.copy_from_slice(&self.buffer[position..position + 4]);
+                    let msg_len = Buf::get_u32(&mut &msg_len_buf[..]) as usize - 1;
+                    println!("Message length (excl. type specifier byte): {}.", msg_len);
 
-                match msg_type {
-                    MessageType::Message => {
-                        let msg =
-                            Message::from_protobuf(&self.buffer[5..5 + msg_len]).map_err(|e| PeerError::Decode(e))?;
-                        println!("{:#?}", msg);
+                    // Determine the message type
+                    let msg_type: MessageType =
+                        num::FromPrimitive::from_u8(self.buffer[position + 4]).ok_or(PeerError::UnknownMessageType)?;
+                    println!("Message type: {:?}.", msg_type);
 
-                        let data = msg.unwrap();
+                    match msg_type {
+                        MessageType::Message => {
+                            let msg = Message::from_protobuf(&self.buffer[position + 5..position + 5 + msg_len])
+                                .map_err(|e| PeerError::Decode(e))?;
+                            println!("{:#?}", msg);
 
-                        Ok((MessageType::Message, data))
+                            let data = msg.unwrap();
+
+                            messages.push((MessageType::Message, data));
+                        }
+                        MessageType::MessageRequest => {
+                            let msg_req =
+                                MessageRequest::from_protobuf(&self.buffer[position + 5..position + 5 + msg_len])
+                                    .map_err(|e| PeerError::Decode(e))?;
+                            println!("{:#?}", msg_req);
+
+                            let id = msg_req.unwrap();
+
+                            messages.push((MessageType::MessageRequest, id))
+                        }
                     }
-                    MessageType::MessageRequest => {
-                        let msg_req = MessageRequest::from_protobuf(&self.buffer[5..5 + msg_len])
-                            .map_err(|e| PeerError::Decode(e))?;
-                        println!("{:#?}", msg_req);
 
-                        let id = msg_req.unwrap();
-
-                        Ok((MessageType::MessageRequest, id))
-                    }
+                    position += 5 + msg_len;
                 }
+
+                Ok(messages)
             }
         } else {
             Err(PeerError::NotHealthy)

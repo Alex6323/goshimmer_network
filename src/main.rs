@@ -45,13 +45,14 @@ fn spawn_connection_handler(mut peer: ConnectedPeer) {
         println!("Listening for gossip from {}.", peer.id());
 
         loop {
-            match (&mut peer).recv_msg() {
-                Ok((_ty, data)) => {
-                    if data.len() == 0 {
-                        println!("Peer sent empty message.");
+            match (&mut peer).recv_msgs() {
+                Ok(msgs) => {
+                    if msgs.len() == 0 {
+                        println!("Peer sent no messages.");
                         continue;
                     }
-                    println!("Received {} bytes in data from {}.", data.len(), peer.id());
+                    // println!("Received {} bytes in data from {}.", data.len(), peer.id());
+                    println!("Received {} messages from {}.", msgs.len(), peer.id());
                 }
                 Err(e) => {
                     println!("Receive error: {:?}", e);
