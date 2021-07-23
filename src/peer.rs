@@ -1,7 +1,6 @@
 use crate::{
     identity::Identity,
     message::{Message, MessageRequest, MessageType},
-    packet::{Packet, PacketType},
     MAX_PACKET_SIZE,
 };
 
@@ -12,13 +11,15 @@ use std::{
 
 use prost::bytes::Buf;
 
+const BUFFER_SIZE: usize = std::mem::size_of::<u32>() + MAX_PACKET_SIZE;
+
 pub struct ConnectedPeer {
     identity: Identity,
     alias: String,
     reader: BufReader<TcpStream>,
     writer: BufWriter<TcpStream>,
     healthy: bool,
-    // buffer: [u8; MAX_PACKET_SIZE],
+    buffer: [u8; BUFFER_SIZE],
 }
 
 #[derive(Debug)]
@@ -29,7 +30,8 @@ pub enum PeerError {
     Decode(prost::DecodeError),
     Encode(prost::EncodeError),
     PacketType(io::Error),
-    UnknownPacket,
+    MessageType(io::Error),
+    UnknownMessageType,
 }
 
 impl ConnectedPeer {
@@ -40,7 +42,7 @@ impl ConnectedPeer {
             reader,
             writer,
             healthy: true,
-            // buffer: [0u8; MAX_PACKET_SIZE],
+            buffer: [0u8; BUFFER_SIZE],
         }
     }
 
@@ -78,81 +80,51 @@ impl ConnectedPeer {
 
     pub fn recv_msg(&mut self) -> Result<(MessageType, Vec<u8>), PeerError> {
         if self.healthy {
-            let mut buffer = [0u8; MAX_PACKET_SIZE];
-            let n = self.reader.read(&mut buffer).map_err(|e| PeerError::RecvMessage(e))?;
+            // NOTE:
+            // - every message is prepended by its length: see iotaledger/hive.go/netutil/buffconn/buffconn.go
+            // - Bytes 0..3 encode a u32 representing the message length
+            // - Byte 4     encodes the message type (Message or MessageRequest)
+            // - Bytes 5..n encode the protobuf representation of the actual message
+
+            let n = self
+                .reader
+                .read(&mut self.buffer)
+                .map_err(|e| PeerError::RecvMessage(e))?;
+
             if n == 0 {
                 println!("Connection reset by peer.");
                 self.healthy = false;
 
                 Err(PeerError::NotHealthy)
             } else {
-                println!("---");
                 println!("Received {} bytes.", n);
 
-                println!("{} {} {} {} {}", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],);
-                let pkt_type = Buf::get_u32(&mut &buffer[0..4]);
-                println!("Packet type identifier: {}.", pkt_type);
+                let msg_len = Buf::get_u32(&mut &self.buffer[0..=3]);
+                println!("Message length (incl. type specifier byte): {}.", msg_len);
 
-                if let Ok(pkt) = Packet::from_protobuf(&buffer[..n]) {
-                    println!("Decoding packet successful. Type = {:?}", pkt.ty());
-                } else {
-                    println!("Decoding packet failed.");
-                }
+                let msg_type: MessageType =
+                    num::FromPrimitive::from_u8(self.buffer[4]).ok_or(PeerError::UnknownMessageType)?;
+                println!("Message type: {:?}.", msg_type);
 
-                let msg_type = buffer[4];
-                // let pt = (&self.buffer[0..8]).get_u64();
-
-                println!("Message type identifier: {}.", msg_type);
-
-                // let packet_type: PacketType = num::FromPrimitive::from_u64(pt).ok_or(PeerError::PacketType(
-                //     io::Error::new(io::ErrorKind::InvalidData, "unknown packet type identifier"),
-                // ))?;
-
-                for j in 0..n {
-                    if let Ok(msg) = Message::from_protobuf(&buffer[j..n]) {
-                        println!("Decode success at index {}", j);
-
+                match msg_type {
+                    MessageType::Message => {
+                        let msg = Message::from_protobuf(&self.buffer[5..n]).map_err(|e| PeerError::Decode(e))?;
                         println!("{:#?}", msg);
 
                         let data = msg.unwrap();
 
-                        return Ok((MessageType::Message, data));
+                        Ok((MessageType::Message, data))
+                    }
+                    MessageType::MessageRequest => {
+                        let msg_req =
+                            MessageRequest::from_protobuf(&self.buffer[5..n]).map_err(|e| PeerError::Decode(e))?;
+                        println!("{:#?}", msg_req);
+
+                        let id = msg_req.unwrap();
+
+                        Ok((MessageType::MessageRequest, id))
                     }
                 }
-
-                Err(PeerError::UnknownPacket)
-                // let packet_type = self.buffer[0];
-
-                // match packet_type {
-                //     // PacketType::Message => {
-                //     0 => {
-                //         println!("PacketType::Message");
-
-                //         let msg = Message::from_protobuf(&self.buffer[1..n]).map_err(|e| PeerError::Decode(e))?;
-                //         println!("{:#?}", msg);
-
-                //         let data = msg.unwrap();
-
-                //         Ok((PacketType::Message, data))
-                //     }
-                //     // PacketType::MessageRequest => {
-                //     1 => {
-                //         println!("PacketType::MessageRequest");
-
-                //         let msg_req =
-                //             MessageRequest::from_protobuf(&self.buffer[1..n]).map_err(|e| PeerError::Decode(e))?;
-                //         println!("{:#?}", msg_req);
-
-                //         let id = msg_req.unwrap();
-
-                //         Ok((PacketType::MessageRequest, id))
-                //     }
-                //     _ => {
-                //         println!("Received unknown packet");
-
-                //         Err(PeerError::UnknownPacket)
-                //     }
-                // }
             }
         } else {
             Err(PeerError::NotHealthy)
