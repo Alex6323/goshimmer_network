@@ -20,6 +20,6 @@ pub use event::NetworkEvent;
 pub use handshake::{HandshakeError, HandshakeRequest, HandshakeResponse, HandshakeValidator};
 pub use identity::{Identity, LocalIdentity};
 pub use network::Network;
-pub use peer::ConnectedPeer;
+pub use peer::{ConnectedPeer, PeerError};
 
 pub use consts::MAX_PACKET_SIZE;
