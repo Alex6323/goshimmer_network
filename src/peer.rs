@@ -80,7 +80,6 @@ impl ConnectedPeer {
         if self.healthy {
             let mut buffer = [0u8; MAX_PACKET_SIZE];
             let n = self.reader.read(&mut buffer).map_err(|e| PeerError::RecvMessage(e))?;
-
             if n == 0 {
                 println!("Connection reset by peer.");
                 self.healthy = false;
@@ -90,19 +89,9 @@ impl ConnectedPeer {
                 println!("---");
                 println!("Received {} bytes.", n);
 
-                // println!(
-                //     "{} {} {} {} {} {} {} {}",
-                //     self.buffer[0],
-                //     self.buffer[1],
-                //     self.buffer[2],
-                //     self.buffer[3],
-                //     self.buffer[4],
-                //     self.buffer[5],
-                //     self.buffer[6],
-                //     self.buffer[7]
-                // );
+                println!("{} {} {} {} {}", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4],);
 
-                let pt = buffer[0];
+                let pt = buffer[4];
                 // let pt = Buf::get_u32(&mut &buffer[0..4]);
                 // let pt = (&self.buffer[0..8]).get_u64();
 
