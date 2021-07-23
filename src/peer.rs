@@ -101,7 +101,7 @@ impl ConnectedPeer {
 
                 let mut msg_len_buf = [0u8; 4];
                 msg_len_buf.copy_from_slice(&self.buffer[0..=3]);
-                let msg_len = Buf::get_u32(&mut &msg_len_buf[..]);
+                let msg_len = Buf::get_u32(&mut &msg_len_buf[..]) as usize;
                 println!("Message length (incl. type specifier byte): {}.", msg_len);
 
                 let msg_type: MessageType =
@@ -110,7 +110,8 @@ impl ConnectedPeer {
 
                 match msg_type {
                     MessageType::Message => {
-                        let msg = Message::from_protobuf(&self.buffer[5..n]).map_err(|e| PeerError::Decode(e))?;
+                        let msg =
+                            Message::from_protobuf(&self.buffer[5..5 + msg_len]).map_err(|e| PeerError::Decode(e))?;
                         println!("{:#?}", msg);
 
                         let data = msg.unwrap();
@@ -118,8 +119,8 @@ impl ConnectedPeer {
                         Ok((MessageType::Message, data))
                     }
                     MessageType::MessageRequest => {
-                        let msg_req =
-                            MessageRequest::from_protobuf(&self.buffer[5..n]).map_err(|e| PeerError::Decode(e))?;
+                        let msg_req = MessageRequest::from_protobuf(&self.buffer[5..5 + msg_len])
+                            .map_err(|e| PeerError::Decode(e))?;
                         println!("{:#?}", msg_req);
 
                         let id = msg_req.unwrap();
